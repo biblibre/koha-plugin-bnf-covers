@@ -1,0 +1,36 @@
+# Note: This is a full specification, but only paths are actually used.
+# Any refs are rewritten as absolute file uris.
+---
+swagger: "2.0"
+info:
+  title: Koha REST API Bnf Interface Plugin
+  version: "1"
+paths:
+  /bnf-ark:
+    get:
+      summary: Get Bnf cover by a single biblionumber.
+      operationId: getBnfArk
+      parameters:
+        - name: biblionumber
+          in: query
+          description: Biblionumber
+          type: string
+          required: true
+      produces:
+        - application/json
+      responses:
+        200:
+          description: ARK for the specified biblionumber
+          schema:
+            type: object
+            properties:
+              ark:
+                description: Ark from record metadata
+                type: string
+        400:
+          description: Bad request, invalid input
+        404:
+          description: Biblionumber not found
+      tags:
+        - enhanced_content
+      x-mojo-to: Com::Biblibre::BnfCovers::Controller::Index#get_bnf_ark
