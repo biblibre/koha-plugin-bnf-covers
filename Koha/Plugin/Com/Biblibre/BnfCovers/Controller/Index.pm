@@ -31,20 +31,26 @@ sub get_bnf_ark {
     my $c = shift->openapi->valid_input or return;
 
     my $biblionumber = $c->param('biblionumber');
-
     my $biblio = Koha::Biblios->find($biblionumber);
-    if ($biblio) {
-        my $marc_record = $biblio->metadata->record;
+    
+    return $c->render(
+        json => { error => 'Biblionumber not found' }, 
+        status => 404
+    ) unless $biblio;
 
-        if ( my $field_003 = $marc_record->field('003') ) {
-            if ( $field_003->data() =~ m{http://catalogue\.bnf\.fr/(.*)} ) {
-                my $ark = $1;
-                return $c->render(json => { data => $ark });
-            }
-        }
-        return $c->render(json => { error => 'ARK compatible with BNF not found in the record.' }, status => 404);
+    my $marc_record = $biblio->metadata->record;
+    my $field_003 = $marc_record->field('003');
+    
+    if ($field_003 && $field_003->data() =~ m{http://catalogue\.bnf\.fr/(.*)}) {
+        return $c->render(json => { 
+            success => \1, 
+            data => $1 
+        });
     }
-    return $c->render(json => { error => 'Biblionumber not found.' }, status => 404);
+    
+    return $c->render(json => { 
+        success => \0 
+    });
 }
 
 1;

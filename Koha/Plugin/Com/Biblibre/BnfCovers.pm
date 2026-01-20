@@ -125,35 +125,48 @@ sub intranet_cover_images {
             document.addEventListener('DOMContentLoaded', function() {
                 search_results_images.forEach((div) => {
                     let biblionumber;
+                    let emptyCover;
                     if (onResultPage) {
                         biblionumber = div.dataset.biblionumber;
                     } else {
                         biblionumber = getUrlParameter('biblionumber');
+                        emptyCover = `
+                            <div id="bnf-bookcoverimg" class="cover-image bnf-bookcoverimg">
+                                <a href="#">
+                                    <img class="bnf-cover" style="max-width:100px;max-height:160px;" alt="Bnf cover image" />
+                                </a>
+                                <div class="hint">Image from Bnf</div>
+                            </div>
+                        `;
+                        div.insertAdjacentHTML('beforeend', emptyCover);
                     }
 
                     \$.get('/api/v1/contrib/bnf/bnf-ark', { biblionumber: biblionumber })
                         .done((response) => {
-                            const ark = response.data;
-                            const coverSrc = "https://catalogue.bnf.fr/couverture?appName=NE&idArk=" + ark + "&couverture=1";
-                            const coverStyle = "max-width:100px;max-height:160px;";
-                            const link = div.dataset.processedbiblio ? div.dataset.processedbiblio : coverSrc;
+                            if (response && response.success && response.data && response.data.trim() !== '') {
+                                const ark = response.data;
+                                const coverSrc = "https://catalogue.bnf.fr/couverture?appName=NE&idArk=" + ark + "&couverture=1";
+                                const coverStyle = "max-width:100px;max-height:160px;";
+                                const link = div.dataset.processedbiblio ? div.dataset.processedbiblio : coverSrc;
+                                let bnfCover;
+                                if(onResultPage){
+                                    bnfCover = `
+                                        <div id="bnf-bookcoverimg-\${biblionumber}" class="cover-image bnf-bookcoverimg">
+                                            <a href="\${link}">
+                                                <img class="bnf-cover" src="\${coverSrc}" style="\${coverStyle}" alt="Bnf cover image" />
+                                            </a>
+                                            <div class="hint">Bnf cover image</div>
+                                        </div>
+                                    `;
 
-                            let divId = onResultPage ? \`bnf-bookcoverimg-\${biblionumber}\` : 'bnf-bookcoverimg';
-                            let hintText = onResultPage ? 'Bnf cover image' : 'Image from Bnf';
-                            const bnfCover = \`
-                                <div id="\${divId}" class="cover-image bnf-bookcoverimg">
-                                    <a href="\${link}">
-                                        <img class="bnf-cover" src="\${coverSrc}" style="\${coverStyle}" alt="Bnf cover image" />
-                                    </a>
-                                    <div class="hint">\${hintText}</div>
-                                </div>
-                            \`;
-
-                            div.insertAdjacentHTML('beforeend', bnfCover);
-
-                            if (!onResultPage) {
-                                verify_cover_images();
-                            } else {
+                                    div.insertAdjacentHTML('beforeend', bnfCover);
+                                } else {
+                                    bnfCover = \$("#bnf-bookcoverimg");
+                                    bnfCover.find('img').attr('src', coverSrc);
+                                    bnfCover.find('a').attr('href', coverSrc);
+                                }
+                            }
+                            if (onResultPage) {
                                 const length = document.querySelectorAll('.bnf-cover').length;
                                 let i = 0;
                                 document.querySelectorAll('.bnf-cover').forEach((img) => {
@@ -168,6 +181,17 @@ sub intranet_cover_images {
                                 if (noImageDiv) {
                                     noImageDiv.remove();
                                 }
+                            } else {
+                                bnfCover = \$("#bnf-bookcoverimg");
+                                if(!bnfCover.find('img').attr('src')){
+                                    bnfCover.remove();
+                                    verify_cover_images();
+                               }
+                            }
+                        })
+                        .fail((xhr, status, error) => {
+                            if (xhr.status !== 404) {
+                                console.warn('BNF API issue for biblionumber:', biblionumber, '(Status:', xhr.status + ')');
                             }
                         });
                 });
@@ -206,34 +230,44 @@ sub opac_cover_images {
 
                         \$.get('/api/v1/contrib/bnf/bnf-ark', { biblionumber: biblionumber })
                             .done((response) => {
-                                const ark = response.data;
-                                const coverSrc = "https://catalogue.bnf.fr/couverture?appName=NE&idArk=" + ark + "&couverture=1";
-                                const coverStyle = "max-width:100px;max-height:160px;";
-                                const imgTitle = div.getAttribute('data-title');
-                                let divId = onResultPage ? `bnf-bookcoverimg-\${biblionumber}` : 'bnf-bookcoverimg';
-                                let hintText = onResultPage ? 'Bnf cover image' : 'Image from Bnf';
+                                // Vérifier si la requête a réussi et si les données sont présentes
+                                if (response && response.success && response.data && response.data.trim() !== '') {
+                                    const ark = response.data;
+                                    const coverSrc = "https://catalogue.bnf.fr/couverture?appName=NE&idArk=" + ark + "&couverture=1";
+                                    const coverStyle = "max-width:100px;max-height:160px;";
+                                    const imgTitle = div.getAttribute('data-title');
+                                    let divId = onResultPage ? `bnf-bookcoverimg-\${biblionumber}` : 'bnf-bookcoverimg';
+                                    let hintText = onResultPage ? 'Bnf cover image' : 'Image from Bnf';
 
-                                if (onResultPage) {
-                                    div.innerHTML += `
-                                        <span title="\${imgTitle}">
-                                            <a href="\${coverSrc}">
-                                                <img src="\${coverSrc}" style="\${coverStyle}" alt class="item-thumbnail" />
-                                            </a>
-                                            <div class="hint">Image from Bnf</div>
-                                        </span>
-                                    `;
-                                } else {
-                                    div.innerHTML += `
-                                        <div class="cover-image" id="bnf-bookcoverimg">
-                                            <a href="\${coverSrc}" title="Bnf cover image">
-                                                <img src="\${coverSrc}" style="\${coverStyle}" alt="Bnf cover image" />
-                                            </a>
-                                            <div class="hint">Image from Bnf</div>
-                                        </div>
-                                    `;
+                                    if (onResultPage) {
+                                        div.innerHTML += `
+                                            <span title="\${imgTitle}">
+                                                <a href="\${coverSrc}">
+                                                    <img src="\${coverSrc}" style="\${coverStyle}" alt class="item-thumbnail" />
+                                                </a>
+                                                <div class="hint">Image from Bnf</div>
+                                            </span>
+                                        `;
+                                    } else {
+                                        div.innerHTML += `
+                                            <div class="cover-image" id="bnf-bookcoverimg">
+                                                <a href="\${coverSrc}" title="Bnf cover image">
+                                                    <img src="\${coverSrc}" style="\${coverStyle}" alt="Bnf cover image" />
+                                                </a>
+                                                <div class="hint">Image from Bnf</div>
+                                            </div>
+                                        `;
+                                    }
+                                    if (!onResultPage) {
+                                        verify_cover_images();
+                                    }
                                 }
-                                if (!onResultPage) {
-                                    verify_cover_images();
+                                // Silence: pas de logs pour les ARK non trouvés
+                            })
+                            .fail((xhr, status, error) => {
+                                // Silence: gestion discrète des erreurs API
+                                if (xhr.status !== 404) {
+                                    console.warn('BNF API issue for biblionumber:', biblionumber, '(Status:', xhr.status + ')');
                                 }
                             });
 
