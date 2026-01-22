@@ -5,14 +5,14 @@ use base       qw(Koha::Plugins::Base);
 use Mojo::JSON qw(decode_json);
 use C4::Context;
 
-our $VERSION         = "1.0";
+our $VERSION         = "2.0";
 our $MINIMUM_VERSION = "23.05";
 
 our $metadata = {
     name            => 'Plugin BnfCovers',
     author          => 'Thibaud Guillot',
     date_authored   => '2025-08-25',
-    date_updated    => "2025-08-25",
+    date_updated    => "2026-01-22",
     minimum_version => $MINIMUM_VERSION,
     maximum_version => undef,
     version         => $VERSION,
