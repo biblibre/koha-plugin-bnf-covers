@@ -116,79 +116,81 @@ sub intranet_cover_images {
 <script>
     function addBnfCover(e) {
         const search_results_images = document.querySelectorAll('.cover-slides, .cover-slider');
-        const divDetail = document.querySelector('#catalogue_detail_biblio');
-        const onResultPage = divDetail ? false : true;
+        const divDetail = \$('#catalogue_detail_biblio');
+        const onResultPage = divDetail.length ? false : true;
         const getUrlParameter = (name) => new URLSearchParams(window.location.search).get(name);
+        let coverClasses = "bnf-bookcoverimg";
+        let timeout = 0;
 
         if (search_results_images.length) {
-            const biblionumbers = [];
+            const existingCovers = document.querySelectorAll('.cover-image');
+            if(!onResultPage && existingCovers.length == 0){
+                coverClasses += " cover-image";
+            }
+            
+            if (onResultPage) {
+                timeout = 1000;
+            }
+            
             document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
                 search_results_images.forEach((div) => {
                     let biblionumber;
+                    let divId;
                     if (onResultPage) {
                         biblionumber = div.dataset.biblionumber;
+                        divId = "bnf-bookcoverimg" + biblionumber;
                     } else {
                         biblionumber = getUrlParameter('biblionumber');
-                        const emptyCover = `
-                            <div id="bnf-bookcoverimg" class="cover-image bnf-bookcoverimg">
-                                <a href="#">
-                                    <img class="bnf-cover" style="max-width:100px;max-height:160px;" alt="Bnf cover image" />
-                                </a>
-                                <div class="hint">Image from Bnf</div>
-                            </div>
-                        `;
-                        div.insertAdjacentHTML('beforeend', emptyCover);
+                         divId = "bnf-bookcoverimg";
                     }
+
+                    const emptyCover = `
+                        <div id="\${divId}" class="\${coverClasses}">
+                            <a href="#" title="Bnf cover image">
+                                <img class="bnf-cover" style="max-width:100px;max-height:160px;" alt="Bnf cover image" />
+                            </a>
+                            <div class="hint">Image from Bnf</div>
+                        </div>
+                    `;
+                    
+                    div.insertAdjacentHTML('beforeend', emptyCover);
 
                     \$.get('/api/v1/contrib/bnf/bnf-ark', { biblionumber: biblionumber })
                         .done((response) => {
+                            const bnfCover = onResultPage ? \$("#bnf-bookcoverimg" + biblionumber) : \$("#bnf-bookcoverimg");
                             if (response && response.success && response.data && response.data.trim() !== '') {
                                 const ark = response.data;
                                 const coverSrc = "https://catalogue.bnf.fr/couverture?appName=NE&idArk=" + ark + "&couverture=1";
                                 const coverStyle = "max-width:100px;max-height:160px;";
                                 const link = div.dataset.processedbiblio ? div.dataset.processedbiblio : coverSrc;
-                                let bnfCover;
-                                if(onResultPage){
-                                    bnfCover = `
-                                        <div id="bnf-bookcoverimg-\${biblionumber}" class="cover-image bnf-bookcoverimg">
-                                            <a href="\${link}">
-                                                <img class="bnf-cover" src="\${coverSrc}" style="\${coverStyle}" alt="Bnf cover image" />
-                                            </a>
-                                            <div class="hint">Bnf cover image</div>
-                                        </div>
-                                    `;
-
-                                    div.insertAdjacentHTML('beforeend', bnfCover);
-                                } else {
-                                    bnfCover = \$("#bnf-bookcoverimg");
+                                bnfCover.addClass('cover-image');
+                                if (onResultPage) {        
+                                    const noImageDiv = div.querySelector('div.no-image');
+                                    if (noImageDiv) {
+                                        noImageDiv.remove();
+                                    }
                                     bnfCover.find('img').attr('src', coverSrc);
-                                    bnfCover.find('a').attr('href', coverSrc);
-                                }
-                            }
-                            if (onResultPage) {
-                                const length = document.querySelectorAll('.bnf-cover').length;
-                                let i = 0;
-                                document.querySelectorAll('.bnf-cover').forEach((img) => {
-                                    img.onload = () => {
-                                        i++;
-                                        if (i === length) {
-                                            verify_cover_images();
-                                        }
-                                    };
-                                });
-                                const noImageDiv = div.querySelector('div.no-image');
-                                if (noImageDiv) {
-                                    noImageDiv.remove();
+                                    bnfCover.find('a').attr('href', link);
+                                } else {
+                                    bnfCover.find('img').attr('src', coverSrc);
+                                    bnfCover.find('a').attr('href', link);
+                                    verify_cover_images();
                                 }
                             } else {
-                                bnfCover = \$("#bnf-bookcoverimg");
-                                if(!bnfCover.find('img').attr('src')){
-                                    bnfCover.remove();
+                                bnfCover.remove();
+                                if(!onResultPage) {
                                     verify_cover_images();
-                               }
+                                }
                             }
                         });
                 });
+                }, timeout);
+                if(onResultPage) {
+                    setTimeout(() => {
+                        verify_cover_images();
+                    }, timeout + 1000);
+                }
             });
         }
     }
@@ -210,15 +212,19 @@ sub opac_cover_images {
             const divDetail = \$('#catalogue_detail_biblio');
             const onResultPage = divDetail.length ? false : true;
             const getUrlParameter = (name) => new URLSearchParams(window.location.search).get(name);
-            const existingCovers = document.querySelectorAll('.cover-image');
             let coverClasses = "bnf-bookcoverimg";
-            if(existingCovers.length == 0){
-                coverClasses += " cover-image";
-            }
+            let timeout = 0;
 
             if (search_results_images.length) {
-                const biblionumbers = [];
+                const existingCovers = document.querySelectorAll('.cover-image');
+                if(existingCovers.length == 0){
+                    coverClasses += " cover-image";
+                } else {
+                    timeout = 1000;
+                }
+
                 document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(() => {
                     search_results_images.forEach((div) => {
                         let biblionumber;
                         let divId;
@@ -264,11 +270,10 @@ sub opac_cover_images {
                                 }
                             });
                     });
-                    if(onResultPage) {
-                        setTimeout(() => {
-                            verify_cover_images();
-                        }, 1000);
-                    }
+                }, timeout);
+                    setTimeout(() => {
+                        verify_cover_images();
+                    }, timeout + 1000);
                 });
             }
         }
@@ -281,3 +286,4 @@ JS
 }
 
 1;
+
