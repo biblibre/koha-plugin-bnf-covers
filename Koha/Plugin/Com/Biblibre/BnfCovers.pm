@@ -131,8 +131,7 @@ sub intranet_cover_images {
             if (onResultPage) {
                 timeout = 1000;
             }
-            
-            document.addEventListener('DOMContentLoaded', function() {
+
             setTimeout(() => {
                 search_results_images.forEach((div) => {
                     let biblionumber;
@@ -191,7 +190,6 @@ sub intranet_cover_images {
                         verify_cover_images();
                     }, timeout + 1000);
                 }
-            });
         }
     }
     document.addEventListener('DOMContentLoaded', addBnfCover, true);
